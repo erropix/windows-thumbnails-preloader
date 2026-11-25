@@ -38,12 +38,12 @@ jobs:
         env:
           RUNTIME: ${{ github.event.inputs.runtime || 'win-x64' }}
         run: >-
-          dotnet publish ThumbsPreloader.sln
-          --configuration Release
-          --runtime $env:RUNTIME
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
+          dotnet publish src/ThumbsPreloader/ThumbsPreloader.csproj `
+          --configuration Release `
+          --runtime $env:RUNTIME `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
           --output publish
 
       - name: Create GitHub release
