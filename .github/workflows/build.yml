@@ -4,9 +4,22 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: Release tag to create (for example, v2.0.0)
+        required: true
+        type: string
+      runtime:
+        description: Windows architecture to publish
+        required: true
+        type: choice
+        options:
+          - win-x64
+          - win-arm64
+        default: win-x64
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -14,12 +27,28 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
-      - name: Build solution
-        run: dotnet build ThumbsPreloader.sln --configuration Release
+      - name: Publish self-contained executable
+        env:
+          RUNTIME: ${{ github.event.inputs.runtime || 'win-x64' }}
+        run: >-
+          dotnet publish ThumbsPreloader.sln
+          --configuration Release
+          --runtime $env:RUNTIME
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output publish
+
+      - name: Create GitHub release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+        run: gh release create "$env:TAG_NAME" publish/ThumbsPreloader.exe --title "$env:TAG_NAME" --generate-notes
